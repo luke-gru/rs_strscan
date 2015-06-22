@@ -1,0 +1,6 @@
+[package]
+name = "strscan"
+version = "0.1.0"
+authors = ["Luke Gruber <luke.gru@gmail.com>"]
+[dependencies]
+regex = "^0.1.8"
