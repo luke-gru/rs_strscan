@@ -1,5 +1,5 @@
-Strscan
-=======
+rs\_strscan
+===========
 
 Simple rust library for matching text against regular expressions for use in
 lexers or other software.

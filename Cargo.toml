@@ -2,5 +2,9 @@
 name = "strscan"
 version = "0.1.0"
 authors = ["Luke Gruber <luke.gru@gmail.com>"]
+description = "Simple rust library for matching text against regular expressions for use in lexers or other software."
+readme = "README.md"
+repository = "https://github.com/luke-gru/rs_strscan"
+license-file = "LICENSE"
 [dependencies]
 regex = "^0.1.8"
