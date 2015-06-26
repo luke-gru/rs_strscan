@@ -1,7 +1,9 @@
 use regex::{Regex, Captures};
 use std::cell::{Cell, RefCell};
 use std::rc::{Rc};
+use std::{fmt};
 
+#[derive(Debug)]
 pub struct StringScanner<'t> {
     string: &'t str,
     pos: Cell<usize>, // current byte index into `string`
@@ -9,13 +11,24 @@ pub struct StringScanner<'t> {
     last_match: RefCell<LastMatch<'t>>, // structure containing last match, if any
 }
 
-struct LastMatch<'a> {
-    caps: Option<Rc<Captures<'a>>>,
+struct LastMatch<'t> {
+    caps: Option<Rc<Captures<'t>>>,
 }
 
-impl<'a> LastMatch<'a> {
-    fn set(&mut self, caps: Option<Rc<Captures<'a>>>) {
+impl<'t> LastMatch<'t> {
+    fn set(&mut self, caps: Option<Rc<Captures<'t>>>) {
         self.caps = caps;
+    }
+}
+
+impl<'t> fmt::Debug for LastMatch<'t> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self.caps {
+            None => write!(f, "matchdata: None"),
+            Some(ref caps) => {
+                write!(f, "matchdata: {:?}", caps.iter_pos().collect::<Vec<_>>())
+            }
+        }
     }
 }
 
@@ -63,7 +76,7 @@ impl<'t> StringScanner<'t> {
         self.pos.set(self.end);
     }
 
-    pub fn peek_bytes(&self, len: usize) -> Option<&'t str> {
+    pub fn peek_bytes(&self, len: usize) -> Option<&str> {
         if self.is_eos() { return None; }
         let mut end = self.pos.get() + len;
         if end > self.end {
@@ -72,7 +85,7 @@ impl<'t> StringScanner<'t> {
         Some(&self.rest().unwrap()[self.pos.get()..end])
     }
 
-    pub fn peek_chars(&self, mut len: usize) -> Option<&'t str> {
+    pub fn peek_chars(&self, mut len: usize) -> Option<&str> {
         if self.is_eos() { return None; }
         let rest = self.rest().unwrap();
         let num_chars_rem = rest.chars().count();
@@ -82,7 +95,7 @@ impl<'t> StringScanner<'t> {
         Some(rest.slice_chars(0, len))
     }
 
-    pub fn rest(&self) -> Option<&'t str> {
+    pub fn rest(&self) -> Option<&str> {
         if self.is_eos() { return None; }
         Some(&self.string[self.pos.get()..])
     }
@@ -94,7 +107,7 @@ impl<'t> StringScanner<'t> {
         Some(byte_slice.as_bytes()[0])
     }
 
-    pub fn get_char(&self) -> Option<&'t str> {
+    pub fn get_char(&self) -> Option<&str> {
         if self.is_eos() { return None; }
         let rest = &self.string[self.pos.get()..];
         let chr = rest.slice_chars(0, 1);
@@ -102,7 +115,7 @@ impl<'t> StringScanner<'t> {
         Some(chr)
     }
 
-    pub fn scan<'a>(&'a self, re: &Regex) -> Option<&'a str> {
+    pub fn scan(&self, re: &Regex) -> Option<&str> {
         let rest = &self.string[self.pos.get()..];
         let caps_opt = re.captures(rest);
         if caps_opt.is_none() {
@@ -122,7 +135,7 @@ impl<'t> StringScanner<'t> {
         }
     }
 
-    pub fn check<'a>(&'a self, re: &Regex) -> bool {
+    pub fn check(&self, re: &Regex) -> bool {
         let caps = re.captures(&self.string[self.pos.get()..]);
         match caps {
             Some(cs) => {
@@ -232,15 +245,6 @@ fn test_scan() {
     assert_eq!("scan", scanner.scan(&re_chars).unwrap());
     assert!(scanner.scan(&re_ws).is_none());
     assert!(scanner.is_eos());
-}
-
-#[test]
-// testing that `scan` doesn't borrow the scanner mutably
-fn test_scan_can_be_borrowed_twice_in_single_stmt() {
-    let scanner = StringScanner::new("test\n scan");
-    let re_chars = Regex::new(r"^\w+").unwrap();
-    let re_ws = Regex::new(r"^\s+").unwrap();
-    scanner.scan(&re_chars).unwrap_or_else(|| scanner.scan(&re_ws).unwrap());
 }
 
 #[test]
